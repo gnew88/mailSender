@@ -74,7 +74,7 @@ if option == '收據':
             except:
                 success = 'failed'
             
-            status_list.append({'姓名':name,'信箱':receiver_email, '狀態':success})
+            status_list.append({'信箱':receiver_email, '狀態':success})
             send_finish = True
 
     ###### 檢視寄信狀態 ######
@@ -132,7 +132,7 @@ else:
             except:
                 success = 'failed'
 
-            status_list.append({'姓名':name,'信箱':receiver_email, '狀態':success})
+            status_list.append({'信箱':receiver_email, '狀態':success})
             send_finish = True
 
     ##### 檢視寄信狀態 ######
