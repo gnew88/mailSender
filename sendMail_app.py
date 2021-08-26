@@ -5,21 +5,25 @@ import yagmail
 
 # 標題
 st.markdown("<h1 style='text-align: center; color: blue;'>Mail Sender</h1>", unsafe_allow_html=True)
-st.markdown('---')
+
 
 ###### 寄件者人 Gmail 帳密 ######
 st.sidebar.header('寄件人資訊')
 account = st.sidebar.text_input('帳號')
 password = st.sidebar.text_input('密碼', type='password')
+st.sidebar.markdown('[使用說明](https://docs.google.com/document/d/1YQMeRTibK7qjZonhz6Xl3a0Jv3-rj_g9o7dyvOVTxBk/edit?usp=sharing)')
 
 ###### 選擇寄送項目 ########
-st.header('選擇寄送項目')
-option = st.selectbox('', options=['收據', '連結'])
-
+option = st.selectbox('寄送項目', options=['收據', '實驗連結'])
+st.markdown('---')
 
 ###### 上傳參加者資訊 ######
 if option == '收據':
     st.header('參加者資訊表')
+    st.markdown('- 檔案為 csv 檔')
+    st.markdown('- 需包含的欄位: 學號、姓名、email')
+    st.markdown('- 學號中的英文字母將轉換為大寫')
+
     participant_info = st.file_uploader('', type=['csv'])
     if participant_info is not None:
         try:
@@ -35,10 +39,14 @@ if option == '收據':
 
     ###### 收據資料上傳 #######
     st.header('上傳收據資料')
+    st.markdown('- 檔案為 docx 檔')
+    st.markdown('- 檔案以學號命名, 另外英文字母一律大寫')
+
     receipts = st.file_uploader('', accept_multiple_files=True, type=['docx'])
 
     ##### 信件內容 #######
     st.header('信件內容')
+    st.markdown('- 信件開頭會自動加上同學姓名')
     mail_content = st.text_area('', height=300, max_chars=None, key=None)
 
     ##### 確認是否設定完成 ######
@@ -80,6 +88,7 @@ if option == '收據':
     ###### 檢視寄信狀態 ######
     st.markdown('---')
     st.header('寄件狀態')
+    st.markdown('- 顯示信件是否成功寄出')
     if send_finish:
         status_df = pd.DataFrame(status_list)
         status_df.sort_values(['狀態'], inplace = True)
@@ -88,7 +97,10 @@ if option == '收據':
 
 else: 
     # 連結資料表
-    st.header('連結資訊表') 
+    st.header('實驗連結資訊表') 
+    st.markdown('- 檔案為 csv 檔')
+    st.markdown('- 欄位須包含學號、連結')
+
     link_info = st.file_uploader('', type=['csv']) 
     if link_info is not None:
         try:
@@ -103,7 +115,8 @@ else:
 
     # 信件內容
     st.header('信件內容')
-    mail_content = st.text_area('連結部分寫上\"連結\"', height=300, max_chars=None, key=None)
+    st.markdown('- 將要傳送的連結, 以\"連結\"文字代替 (不需要引號)')
+    mail_content = st.text_area('', height=300, max_chars=None, key=None)
     
     # 是否設定完成
     set_up = st.button('開始寄信')
@@ -139,6 +152,7 @@ else:
     st.markdown('---')
 
     st.header('寄件狀態')
+    st.markdown('- 顯示信件是否成功寄出')
     if send_finish:
         status_df = pd.DataFrame(status_list)
         status_df.sort_values(['狀態'], inplace = True)
