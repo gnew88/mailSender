@@ -31,7 +31,7 @@ if option == '收據':
         except:
             participant_info_df = pd.read_csv(participant_info, encoding = 'ansi')
 
-        participant_info_df['學號'] = participant_info_df['學號'].apply(lambda x : x.upper())
+        participant_info_df['學號'] = participant_info_df['學號'].apply(lambda x : str(x).upper())
         check_info = st.checkbox('展開資料表')
         if check_info:
             st.write(participant_info_df.to_html(escape = False), unsafe_allow_html = True)
@@ -68,7 +68,10 @@ if option == '收據':
             # 基本資料
             for idx, row in info.iterrows():
                 name = row['姓名']
-                receiver_email = row['email']
+                try:
+                    receiver_email = row['email']
+                except:
+                    reveiver_email = row['Email']
                 content = name + mail_content
             # 寄信
             try:    
@@ -108,7 +111,7 @@ else:
         except:
             link_info_df = pd.read_csv(link_info, encoding = 'ansi')
 
-        link_info_df['學號'] = link_info_df['學號'].apply(lambda x : x.upper())
+        link_info_df['學號'] = link_info_df['學號'].apply(lambda x : str(x).upper())
         check_info = st.checkbox('展開資料表')
         if check_info:
             st.write(link_info_df.to_html(escape = False), unsafe_allow_html = True)
@@ -132,8 +135,11 @@ else:
         status_list = []
 
         for idx, row in link_info_df.iterrows():
-            receiver_email = row['email'] 
-            link = row['連結']
+            try:
+                receiver_email = str(row['email']) 
+            except:
+                receiver_email = str(row['Email'])
+            link = str(row['連結'])
 
             content = mail_content.replace('連結', link)
 
