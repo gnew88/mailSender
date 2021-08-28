@@ -1,165 +1,176 @@
 import streamlit as st
-import pandas as pd
+import pandas as pd 
 import yagmail
+import docx2txt
 
 
-# 標題
-st.markdown("<h1 style='text-align: center; color: blue;'>Mail Sender</h1>", unsafe_allow_html=True)
-
-
-###### 寄件者人 Gmail 帳密 ######
-st.sidebar.header('寄件人資訊')
-account = st.sidebar.text_input('帳號')
-password = st.sidebar.text_input('密碼', type='password')
-st.sidebar.markdown('[使用說明](https://docs.google.com/document/d/1YQMeRTibK7qjZonhz6Xl3a0Jv3-rj_g9o7dyvOVTxBk/edit?usp=sharing)')
-
-###### 選擇寄送項目 ########
+######## Title ########
+st.markdown("<h1 style='text-align: center;'>Mail Sender</h1>", unsafe_allow_html=True)
 option = st.selectbox('寄送項目', options=['收據', '實驗連結'])
 st.markdown('---')
 
-###### 上傳參加者資訊 ######
-if option == '收據':
-    st.header('參加者資訊表')
-    st.markdown('- 檔案為 csv 檔')
-    st.markdown('- 需包含的欄位: 學號、姓名、email')
-    st.markdown('- 學號中的英文字母將轉換為大寫')
+######## Sender information ########
+st.sidebar.header('寄件人資訊')
 
-    participant_info = st.file_uploader('', type=['csv'])
-    if participant_info is not None:
-        try:
-            participant_info_df = pd.read_csv(participant_info)
-        except:
-            participant_info_df = pd.read_csv(participant_info, encoding = 'ansi')
+account = st.sidebar.text_input('Google 信箱')
+password = st.sidebar.text_input('應用程式密碼', type='password')
+st.sidebar.markdown('[帳號設定說明](https://docs.google.com/document/d/1YQMeRTibK7qjZonhz6Xl3a0Jv3-rj_g9o7dyvOVTxBk/edit?usp=sharing)')
 
-        participant_info_df['學號'] = participant_info_df['學號'].apply(lambda x : str(x).upper())
+######## funtion ########
+def modify_df(df = None):
+    """- convert all columns to string  
+       - convert all lowercase letters in studentID to uppercase letters 
+    """
+    df = df.astype(str)
+    df['學號'] = df['學號'].apply(lambda x : x.upper())
+
+    return df
+
+######## Receipts ########
+if (option == '收據'):
+
+    # Participants information
+
+    st.header('參加者資料表')
+    st.markdown('- 檔案須為 CSV UTF-8 檔')
+    st.markdown('- 須包含的欄位有學號、姓名、email (欄位名稱請一致)') 
+    st.markdown('- 學號中的英文字母將全數轉換為大寫')
+
+    participant_info = st.file_uploader('', type = ['csv'])
+
+    if participant_info != None:
+        participant_info_df = pd.read_csv(participant_info)
+        participant_info_df = modify_df(participant_info_df)
         check_info = st.checkbox('展開資料表')
+    
         if check_info:
             st.write(participant_info_df.to_html(escape = False), unsafe_allow_html = True)
 
-
-    ###### 收據資料上傳 #######
+    # Upload receipts
     st.header('上傳收據資料')
-    st.markdown('- 檔案為 docx 檔')
-    st.markdown('- 檔案以學號命名, 另外英文字母一律大寫')
+    st.markdown('- 檔案為 DOCX 檔')
+    st.markdown('- 檔案以學號命名, 且英文字母一律大寫')
 
     receipts = st.file_uploader('', accept_multiple_files=True, type=['docx'])
 
-    ##### 信件內容 #######
+    # Mail content
     st.header('信件內容')
     st.markdown('- 信件開頭會自動加上同學姓名')
-    mail_content = st.text_area('', height=300, max_chars=None, key=None)
+    receipt_subject = st.text_input('信件主旨', value='TASSEL_VC 實驗收據')
+    script = docx2txt.process("receipt_content.docx")
+    receipt_content = st.text_area('信件內容', value =script, height=300, max_chars=None, key=None)
 
-    ##### 確認是否設定完成 ######
+    # Finish setting up
     set_up = st.button('開始寄信')
+    st.markdown('---')
 
-    ##### 開始寄信 ######
-    
     send_finish = False
 
-    if set_up == True:
+    # Sending receipts
+    if (set_up == True):
+        
         yag = yagmail.SMTP(account, password)
 
         status_list = []
-
+        no_match_receipt = []
+        
         for receipt in receipts:
-            # 配對收據檔案
-            studentID = receipt.name.strip('.docx')
-            info = participant_info_df.loc[(participant_info_df['學號'] == studentID)]
-            # 基本資料
-            for idx, row in info.iterrows():
-                name = row['姓名']
+            studentID = receipt.name.strip('docx.') 
+            info = participant_info_df.loc[(participant_info_df['學號'] == studentID)] # match receipt to student
+
+            if len(info) == 0:
+                no_match_receipt.append(studentID + '.docx')
+            else: 
+                name = info['姓名'].values[0]
+                receiver_email = info['email'].values[0]
+                content = name + receipt_content
+
                 try:
-                    receiver_email = row['email']
+                    yag.send(to = receiver_email, subject = receipt_subject, contents = receipt_content, attachments = receipt)
+                    status = 'successful'
                 except:
-                    reveiver_email = row['Email']
-                content = name + mail_content
-            # 寄信
-            try:    
-                yag.send(receiver_email, 
-                        subject = 'TASSEL_VC_實驗收據', 
-                        contents = content,
-                        attachments = receipt)
+                    status = 'failed'
 
-                success = 'successful'
+                status_list.append({'姓名':name, 'email':receiver_email, '狀態':status})
 
-            except:
-                success = 'failed'
-            
-            status_list.append({'信箱':receiver_email, '狀態':success})
-            send_finish = True
+        send_finish = True
 
-    ###### 檢視寄信狀態 ######
-    st.markdown('---')
-    st.header('寄件狀態')
-    st.markdown('- 顯示信件是否成功寄出')
-    if send_finish:
+    # check for send mail status
+    st.header('寄信狀態檢視')
+    if send_finish == True:
+        
+        st.subheader('寄件狀態')
         status_df = pd.DataFrame(status_list)
-        status_df.sort_values(['狀態'], inplace = True)
-        st.write(status_df.to_html(escape = False), unsafe_allow_html = True)
+        st.write(status_df.to_html(escape = False), unsafe_allow_html = True)  
 
+        st.subheader('缺少收據的名單')
+        st.markdown('- 被列出者代表沒有他的收據')
+        no_receive = set(participant_info_df['姓名']) - set(status_df['姓名'])
+        st.write(no_receive)
 
-else: 
-    # 連結資料表
+        st.subheader('找不到主人的收據')
+        st.markdown('- 未能配對參加者的收據檔案')
+        st.write(set(no_match_receipt))
+
+######## Link ########
+else:
+    # link information
     st.header('實驗連結資訊表') 
-    st.markdown('- 檔案為 csv 檔')
+    st.markdown('- 檔案為 CSV UTF-8 檔')
     st.markdown('- 欄位須包含學號、連結')
 
     link_info = st.file_uploader('', type=['csv']) 
-    if link_info is not None:
-        try:
-            link_info_df = pd.read_csv(link_info)
-        except:
-            link_info_df = pd.read_csv(link_info, encoding = 'ansi')
 
-        link_info_df['學號'] = link_info_df['學號'].apply(lambda x : str(x).upper())
+    if link_info is not None:
+        link_info_df = pd.read_csv(link_info)
+        link_info_df = modify_df(link_info_df)
         check_info = st.checkbox('展開資料表')
+    
         if check_info:
             st.write(link_info_df.to_html(escape = False), unsafe_allow_html = True)
 
-    # 信件內容
+    # Content
     st.header('信件內容')
     st.markdown('- 將要傳送的連結, 以\"連結\"文字代替 (不需要引號)')
-    mail_content = st.text_area('', height=300, max_chars=None, key=None)
-    
-    # 是否設定完成
-    set_up = st.button('開始寄信')
+        
+    link_subject = st.text_input('信件主旨', value = 'TASSEL_VC 實驗連結')
+    script = docx2txt.process("link_content.docx")
+    link_content = st.text_area('信件內容', value =script, height=300, max_chars=None, key=None)
 
-    ##### 開始寄信 ######
+
+    # Finish setting up
+    set_up = st.button('開始寄信')
+    st.markdown('---')
 
     send_finish = False
 
+    # Send mail
     if set_up == True:
-
-        yag = yagmail.SMTP(account, password)
 
         status_list = []
 
+        yag = yagmail.SMTP(account, password)
+
         for idx, row in link_info_df.iterrows():
-            try:
-                receiver_email = str(row['email']) 
-            except:
-                receiver_email = str(row['Email'])
-            link = str(row['連結'])
-
-            content = mail_content.replace('連結', link)
+            name = row['姓名']
+            receiver_email = row['email']
+            link = row['連結']
+            content = link_content.replace('連結', link)
 
             try:
-                yag.send(receiver_email, 
-                        subject = 'TASSEL_VC_實驗連結', 
-                        contents = content)
-                success = 'successful'
+                yag.send(to = receiver_email, subject = link_subject, contents = content)
+                status = 'successful'
             except:
-                success = 'failed'
+                status = 'failed'
 
-            status_list.append({'信箱':receiver_email, '狀態':success})
-            send_finish = True
+            status_list.append({'姓名':name, 'email':receiver_email, '狀態':status})
 
-    ##### 檢視寄信狀態 ######
-    st.markdown('---')
+        send_finish = True
 
-    st.header('寄件狀態')
-    st.markdown('- 顯示信件是否成功寄出')
-    if send_finish:
+    # check for send mail status
+    st.header('寄信狀態檢視')
+    if send_finish == True:        
+        st.subheader('寄件狀態')
         status_df = pd.DataFrame(status_list)
         status_df.sort_values(['狀態'], inplace = True)
-        st.write(status_df.to_html(escape = False), unsafe_allow_html = True)
+        st.write(status_df.to_html(escape = False), unsafe_allow_html = True)  
