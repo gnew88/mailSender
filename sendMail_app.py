@@ -48,10 +48,10 @@ if (option == '收據'):
 
     # Upload receipts
     st.header('上傳收據資料')
-    st.markdown('- 檔案為 DOCX 檔')
+    st.markdown('- 檔案為 PDF 檔')
     st.markdown('- 檔案以學號命名, 且英文字母一律大寫')
 
-    receipts = st.file_uploader('', accept_multiple_files=True, type=['docx'])
+    receipts = st.file_uploader('', accept_multiple_files=True, type=['pdf'])
 
     # Mail content
     st.header('信件內容')
@@ -75,11 +75,11 @@ if (option == '收據'):
         no_match_receipt = []
         
         for receipt in receipts:
-            studentID = receipt.name.strip('docx.') 
+            studentID = receipt.name.strip('.pdf') 
             info = participant_info_df.loc[(participant_info_df['學號'] == studentID)] # match receipt to student
 
             if len(info) == 0:
-                no_match_receipt.append(studentID + '.docx')
+                no_match_receipt.append(studentID + '.pdf')
             else: 
                 name = info['姓名'].values[0]
                 receiver_email = info['email'].values[0]
