@@ -56,7 +56,7 @@ if (option == '收據'):
     # Mail content
     st.header('信件內容')
     st.markdown('- 信件開頭會自動加上同學姓名')
-    receipt_subject = st.text_input('信件主旨', value='TASSEL_VC 實驗收據')
+    receipt_subject = st.text_input('信件主旨', value='TASSEL_VG 實驗收據')
     script = docx2txt.process("receipt_content.docx")
     receipt_content = st.text_area('信件內容', value =script, height=300, max_chars=None, key=None)
 
@@ -133,7 +133,7 @@ else:
     st.header('信件內容')
     st.markdown('- 將要傳送的連結, 以\"連結\"文字代替 (不需要引號)')
         
-    link_subject = st.text_input('信件主旨', value = 'TASSEL_VC 實驗連結')
+    link_subject = st.text_input('信件主旨', value = 'TASSEL_VG 實驗連結')
     script = docx2txt.process("link_content.docx")
     link_content = st.text_area('信件內容', value =script, height=300, max_chars=None, key=None)
 
